@@ -1,47 +1,49 @@
-# # consumers.py
-# from channels.consumer import SyncConsumer, AsyncConsumer
+from channels.generic.websocket import JsonWebsocketConsumer, AsyncJsonWebsocketConsumer
+from asgiref.sync import async_to_sync
 
 
-# class MySyncConsumer(SyncConsumer):
-#     def websocket_connect(self, event):
-#         print('WebSocket_Connect....', event)
-#         self.send({
-#             'type':'websocket.accept'
-#         })
+class MyJsonWebsocketConsumer(JsonWebsocketConsumer):
+    def connect(self):
+        print("Websocket Connected.....")
+        print("Channel Layer", self.channel_layer)
+        print("Channel Name", self.channel_name)
+        self.group_name = self.scope['url_route']['kwargs']['groupkaname']
+        print("Group Name:", self.group_name)
+        async_to_sync(self.channel_layer.group_add)(
+            self.group_name,
+            self.channel_name
+        )
+        self.accept()
+        # self.close()
 
-#     def websocket_receive(self, event):
-#         print('Message Received....', event)
+    def receive_json(self, content, **kwargs):
+        print("Message received from Clint....", content)
+        # print("Type of Message received from Clint....", type(content))
 
-#     def websocket_disconnect(self, event):
-#         print('WebSocket_DisConnected....', event)
+        # self.send_json({'message':'Message from server to client'})
+        for i in range(20):
+            self.send_json({'message': str(i)})
+            # sleep(1)
 
-
-# class MyAsyncConsumer(AsyncConsumer):
-#     async def websocket_connect(self, event):
-#         print('WebSocket_Connect....', event)
-
-#     async def websocket_receive(self, event):
-#         print('Message Received....')
-
-#     async def websocket_disconnect(self, event):
-#         print('WebSocket_DisConnected....')
-
-
-# myapp/consumers.py
-import json
-from channels.generic.websocket import AsyncWebsocketConsumer
+    def disconnect(self, close_code):
+        print("Websocket Disconnected.....", close_code)
 
 
-class MyConsumer(AsyncWebsocketConsumer):
+class MyAsyncJsonWebsocketConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
+        print("Websocket Connected.....")
         await self.accept()
+        # await self.close()
+
+    async def receive_json(self, content, **kwargs):
+        print("Message received from Clint....", content)
+        # print("Type of Message received from Clint....", type(content))
+
+        # await self.send_json({'message': 'Message from server to client'})
+        # await self.close()
+        for i in range(20):
+            await self.send_json({'message': str(i)})
+            # await asyncio.sleep(1)
 
     async def disconnect(self, close_code):
-        pass
-
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-        message = data['message']
-        await self.send(text_data=json.dumps({
-            'message': message
-        }))
+        print("Websocket Disconnected.....", close_code)
